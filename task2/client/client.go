@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -16,30 +15,21 @@ type Client struct {
 	Address string
 }
 
-func main() {
-	address := "http://127.0.0.1:8080"
-	cli := Client{address}
-	CallVersion(&cli)
-	CallDecode("Let's Go", &cli)
-	CallHardOp(&cli)
-}
-
-func CallVersion(client *Client) {
+func (client Client) GetVersion() (string, error) {
 	resp, err := http.Get(client.Address + "/version")
 	if err != nil {
-		fmt.Print("/version request failed:" + err.Error())
-		return
+		return "", err
 	}
 	respBytes, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
-		fmt.Print("/version request failed:" + err.Error())
-		return
+		return "", err
 	}
-	fmt.Println(string(respBytes))
+	//fmt.Println(string(respBytes))
+	return string(respBytes), nil
 }
 
-func CallDecode(word string, client *Client) {
+func (client Client) Decode(word string) (string, error) {
 	type Encoded struct {
 		Encoded string `json:"encoded"`
 	}
@@ -53,15 +43,17 @@ func CallDecode(word string, client *Client) {
 	resp, err := http.Post(client.Address+"/decode", "application/json", bytes.NewBuffer(body))
 	defer resp.Body.Close()
 	if err != nil {
-		fmt.Println("/decode request failed:" + err.Error())
-		return
+		return "", err
 	}
 	var result Decoded
-	_ = json.NewDecoder(resp.Body).Decode(&result)
-	fmt.Println(result.Decoded)
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return "", err
+	}
+	return result.Decoded, nil
 }
 
-func CallHardOp(client *Client) {
+func (client Client) CallHardOp() (bool, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -69,11 +61,10 @@ func CallHardOp(client *Client) {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			fmt.Println(false)
+			return false, -1, nil
 		} else {
-			fmt.Println("/hard-op request failed:" + err.Error())
+			return false, -1, err
 		}
-		return
 	}
-	fmt.Println(true, resp.StatusCode)
+	return true, resp.StatusCode, nil
 }

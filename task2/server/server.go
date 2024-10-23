@@ -22,11 +22,11 @@ type Decoded struct {
 	Decoded string `json:"decoded"`
 }
 
-func main() {
+func RunServer() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/version", VersionHandle)
-	mux.HandleFunc("/hard-op", HardOpHandle)
-	mux.HandleFunc("/decode", DecodeHandle)
+	mux.HandleFunc("GET /version", VersionHandle)
+	mux.HandleFunc("GET /hard-op", HardOpHandle)
+	mux.HandleFunc("POST /decode", DecodeHandle)
 
 	httpServer := http.Server{
 		Addr:    ":8080",
